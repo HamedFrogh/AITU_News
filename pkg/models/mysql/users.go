@@ -75,3 +75,47 @@ func (m *UserModel) GetRoleByID(id int) (string, error) {
 	}
 	return role, nil
 }
+
+func (m *UserModel) SetApprovalStatus(userID int, approved bool) error {
+	stmt := "UPDATE users SET approved = ? WHERE id = ?"
+	_, err := m.DB.Exec(stmt, approved, userID)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (m *UserModel) IsApproved(userID int) (bool, error) {
+	var approved bool
+	stmt := "SELECT approved FROM users WHERE id = ?"
+	err := m.DB.QueryRow(stmt, userID).Scan(&approved)
+	if err != nil {
+		return false, err
+	}
+	return approved, nil
+}
+
+func (m *UserModel) GetPendingTeachers() ([]*models.User, error) {
+	// Fetch a list of teacher users pending approval from the database
+	stmt := "SELECT id, name, email FROM users WHERE role = 'teacher' AND approved = FALSE"
+	rows, err := m.DB.Query(stmt)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var pendingTeachers []*models.User
+	for rows.Next() {
+		teacher := &models.User{}
+		err := rows.Scan(&teacher.ID, &teacher.Name, &teacher.Email)
+		if err != nil {
+			return nil, err
+		}
+		pendingTeachers = append(pendingTeachers, teacher)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return pendingTeachers, nil
+}

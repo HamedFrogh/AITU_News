@@ -18,6 +18,7 @@ type templateData struct {
 	Articles        []*models.Article
 	Category        string
 	Categories      []string
+	PendingTeachers []*models.User
 }
 
 func humanDate(t time.Time) string {

@@ -65,6 +65,16 @@ func (app *application) createArticleForm(w http.ResponseWriter, r *http.Request
 	// Get the authenticated user's role
 	userID := app.session.GetInt(r, "authenticatedUserID")
 
+	// Check if the user's role is teacher and if they are approved
+	approved, err := app.users.IsApproved(userID)
+	if err != nil {
+		// Handle error fetching user approval status
+		app.serverError(w, err)
+		return
+	}
+
+	// If the user is not approved, redirect to the home page
+
 	// Fetch user's role from the databaseI
 	role, err := app.users.GetRoleByID(userID)
 	if err != nil {
@@ -76,6 +86,10 @@ func (app *application) createArticleForm(w http.ResponseWriter, r *http.Request
 	// Check if the user's role is student
 	if role == "Student" {
 		// If user's role is student, redirect to the home page
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+	if role == "Teacher" && !approved {
 		http.Redirect(w, r, "/", http.StatusSeeOther)
 		return
 	}
@@ -221,4 +235,57 @@ func (app *application) logoutUser(w http.ResponseWriter, r *http.Request) {
 	app.session.Remove(r, "authenticatedUserID")
 	app.session.Put(r, "flash", "You've been logged out successfully!")
 	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+func (app *application) adminApproval(w http.ResponseWriter, r *http.Request) {
+	// Check if the user is authenticated as admin
+	if !app.isAdminAuthenticated(r) {
+		http.Redirect(w, r, "/user/login", http.StatusSeeOther)
+		return
+	}
+
+	// Fetch a list of teacher users pending approval
+	pendingTeachers, err := app.users.GetPendingTeachers()
+	if err != nil {
+		app.serverError(w, err)
+		return
+	}
+
+	// Process approval requests
+	if r.Method == http.MethodPost {
+		// Parse the form data
+		err := r.ParseForm()
+		if err != nil {
+			app.clientError(w, http.StatusBadRequest)
+			return
+		}
+
+		// Retrieve the list of selected teacher user IDs from the form
+		approvedTeacherIDs := r.PostForm["approved"]
+
+		// Set the approval status for each selected teacher user
+		for _, teacherIDStr := range approvedTeacherIDs {
+			teacherID, err := strconv.Atoi(teacherIDStr)
+			if err != nil {
+				// Handle error
+				continue
+			}
+
+			// Set the user as approved
+			err = app.users.SetApprovalStatus(teacherID, true)
+			if err != nil {
+				// Handle error
+				continue
+			}
+		}
+
+		// Redirect to the admin approval page to refresh the list
+		http.Redirect(w, r, "/admin/approve", http.StatusSeeOther)
+		return
+	}
+
+	// Render the admin approval interface template
+	app.render(w, r, "admin_approval.page.tmpl", &templateData{
+		PendingTeachers: pendingTeachers,
+	})
 }
