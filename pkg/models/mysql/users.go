@@ -65,3 +65,13 @@ func (m *UserModel) Authenticate(email, password string) (int, error) {
 func (m *UserModel) Get(id int) (*models.User, error) {
 	return nil, nil
 }
+
+func (m *UserModel) GetRoleByID(id int) (string, error) {
+	var role string
+	stmt := "SELECT role FROM users WHERE id = ?"
+	err := m.DB.QueryRow(stmt, id).Scan(&role)
+	if err != nil {
+		return "", err
+	}
+	return role, nil
+}

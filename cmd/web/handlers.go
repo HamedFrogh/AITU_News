@@ -54,6 +54,42 @@ func (app *application) showArticle(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *application) createArticleForm(w http.ResponseWriter, r *http.Request) {
+
+	// Check if the user is authenticated
+	if !app.isAuthenticated(r) {
+		// If not authenticated, redirect to the login page
+		http.Redirect(w, r, "/user/login", http.StatusSeeOther)
+		return
+	}
+
+	// Get the authenticated user's role
+	userID := app.session.GetInt(r, "authenticatedUserID")
+
+	// Fetch user's role from the databaseI
+	role, err := app.users.GetRoleByID(userID)
+	if err != nil {
+		// Handle error fetching user role
+		app.serverError(w, err)
+		return
+	}
+
+	// Check if the user's role is student
+	if role == "Student" {
+		// If user's role is student, redirect to the home page
+		http.Redirect(w, r, "/", http.StatusSeeOther)
+		return
+	}
+
+	// Debugging: Print the retrieved role
+	fmt.Println("User Role:", role)
+
+	// Check if the user's role is admin or teacher
+	if role != "Admin" && role != "Teacher" {
+		// If user's role is not admin or teacher, display an error message or redirect to another page
+		app.clientError(w, http.StatusForbidden)
+		return
+	}
+
 	app.render(w, r, "create.page.tmpl", &templateData{
 		Form: forms.New(nil),
 	})
