@@ -13,11 +13,17 @@ func (app *application) routes() http.Handler {
 
 	mux := pat.New()
 	mux.Get("/", dynamicMiddleware.ThenFunc(app.home))
-	mux.Get("/article/create", dynamicMiddleware.ThenFunc(app.createArticleForm))
-	mux.Post("/article/create", dynamicMiddleware.ThenFunc(app.createArticle))
+	mux.Get("/article/create", dynamicMiddleware.Append(app.requireAuthentication).ThenFunc(app.createArticleForm))
+	mux.Post("/article/create", dynamicMiddleware.Append(app.requireAuthentication).ThenFunc(app.createArticle))
 	mux.Get("/article/:id", dynamicMiddleware.ThenFunc(app.showArticle))
 	mux.Get("/category/:category", dynamicMiddleware.ThenFunc(app.showCategoryArticles))
 	mux.Get("/contacts", dynamicMiddleware.ThenFunc(app.contacts))
+
+	mux.Get("/user/signup", dynamicMiddleware.ThenFunc(app.signupUserForm))
+	mux.Post("/user/signup", dynamicMiddleware.ThenFunc(app.signupUser))
+	mux.Get("/user/login", dynamicMiddleware.ThenFunc(app.loginUserForm))
+	mux.Post("/user/login", dynamicMiddleware.ThenFunc(app.loginUser))
+	mux.Post("/user/logout", dynamicMiddleware.Append(app.requireAuthentication).ThenFunc(app.logoutUser))
 
 	fileServer := http.FileServer(http.Dir("./ui/static/"))
 	mux.Get("/static/", http.StripPrefix("/static", fileServer))

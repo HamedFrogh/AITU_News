@@ -20,6 +20,7 @@ type application struct {
 	session       *sessions.Session
 	articles      *mysql.ArticleModel
 	templateCache map[string]*template.Template
+	users         *mysql.UserModel
 }
 
 func main() {
@@ -46,6 +47,8 @@ func main() {
 
 	session := sessions.New([]byte(*secret))
 	session.Lifetime = 12 * time.Hour
+	session.Secure = true
+	session.SameSite = http.SameSiteStrictMode
 
 	app := &application{
 		errorLog:      errorLog,
@@ -53,6 +56,7 @@ func main() {
 		session:       session,
 		articles:      &mysql.ArticleModel{DB: db},
 		templateCache: templateCache,
+		users:         &mysql.UserModel{DB: db},
 	}
 
 	srv := &http.Server{

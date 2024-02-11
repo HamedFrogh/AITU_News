@@ -16,12 +16,25 @@
         </header>
         <nav>
             <a href='/'>Home</a>
+            {{if .IsAuthenticated}}
             <a href='/article/create'>Create article</a>
+            {{end}}
             <a href='/contacts'>Contact Us</a>
             <!-- Add dynamic links for each category -->
             {{range .Categories}}
             <a href='/category/{{.}}'>{{.}}</a>
             {{end}}
+
+            {{if .IsAuthenticated}}
+                <form action='/user/logout' method='POST'>
+                    <button>Logout</button>
+                </form>
+            {{else}}
+                <a href='/user/signup'>Signup</a>
+                <a href='/user/login'>Login</a>
+            {{end}}
+
+
         </nav>
         <main>
             {{with .Flash}}
